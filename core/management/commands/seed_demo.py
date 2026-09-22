@@ -8,7 +8,8 @@ from datetime import datetime, timezone as dt_tz
 
 from django.contrib.auth.models import Group, User
 from django.core.management.base import BaseCommand
-from django.db import transaction
+from django.core.management.color import no_style
+from django.db import connection, transaction
 
 from core.roles import AUDITOR, MANAGER, OPERATOR, ROLES
 from kyc.models import KycCase
@@ -87,6 +88,17 @@ class Command(BaseCommand):
             RefundRequest.objects.all().delete()
             Payment.objects.all().delete()
             KycCase.objects.all().delete()
+            # Restart ID sequences so RR-1..RR-7 / PAY ids are stable after every reset.
+            reset_sql = connection.ops.sequence_reset_by_name_sql(
+                no_style(),
+                [
+                    {"table": m._meta.db_table, "column": "id"}
+                    for m in (RefundEvent, RefundRequest, Payment, KycCase)
+                ],
+            )
+            with connection.cursor() as cursor:
+                for sql in reset_sql:
+                    cursor.execute(sql)
             self.stdout.write("Demo records deleted.")
         elif Payment.objects.exists():
             self.stdout.write("Database already contains data; nothing seeded (use --reset to re-seed).")
