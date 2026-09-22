@@ -58,7 +58,7 @@ Chosen: **Django 5.2 + SQLite + server-rendered templates, no JavaScript build.*
 - [x] Mira Chen, PAY-1007, $200.00 USD, no refund request.
 - [x] Manager-created pending request (RR-6, PAY-1008) for the self-approval demo.
 
-## Browser verification (Chrome, recorded, 2026-09-22 16:06–16:30 UTC)
+## Browser verification (Chrome, recorded, 2026-09-22 ~15:58–16:09 UTC)
 - [x] Full workflow (operator request $120 → manager approve → history).
 - [x] Validation and permission messages visible (exact texts matched).
 - [x] Duplicate request, repeated decision (via authenticated POST — see design notes),

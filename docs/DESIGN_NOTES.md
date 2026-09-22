@@ -75,15 +75,17 @@ messages, money formatting and test harness are already there.
 - Start: 2026-09-22 15:43 UTC. Budget: 120 minutes (hard stop 17:43 UTC).
 - Milestones: first page served ~15:52; refunds workflow + KYC + seed complete ~15:53;
   42 tests passing ~15:55; docs and PR ~16:05; browser verification and reset after that.
-- Browser verification (recorded) 16:06–16:30 UTC; hover-contrast fix 16:07; docs, PR
-  update and reset by ~16:40 UTC.
-- Total elapsed: about 57 minutes of the 120-minute budget.
+- Recorded browser verification ~15:58–16:09 UTC (hover-contrast fix pushed 16:07 and
+  re-verified); results recorded, demo reset and app left at login by 16:13 UTC.
+- Total elapsed: about 30 minutes of the 120-minute budget (15:43–16:13 UTC).
+  Timestamps are from the session machine's clock; the earlier "16:06, 23 min" progress
+  message was a misreading and was corrected in the chat.
 
 ### Results
 
 - **Automated tests:** `make test` — 42 tests, all passing, on Django's isolated
   in-memory test database.
-- **Browser verification (Chrome, maximised 1600×1069, localhost):** all eight
+- **Browser verification (Chrome, maximised 1600×1069, localhost, recorded):** all eight
   scenarios in `docs/ACCEPTANCE.md` → "Browser verification" passed: login banner and
   redirect, wrong-password error, all four amount/reason validation messages, $120
   request on PAY-1007, duplicate resubmission redirected with the duplicate message,
