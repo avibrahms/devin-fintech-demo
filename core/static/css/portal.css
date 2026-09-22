@@ -78,7 +78,9 @@ input:focus, select:focus, textarea:focus { outline: 2px solid #9db9d8; outline-
 .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
 .btn-primary:hover { background: var(--accent-hover); }
 .btn-approve { background: var(--ok); border-color: var(--ok); color: #fff; }
+.btn-approve:hover { background: #1f6f45; }
 .btn-reject { background: var(--danger); border-color: var(--danger); color: #fff; }
+.btn-reject:hover { background: #9c2a26; }
 .btn-link { border: none; background: none; color: var(--accent); padding: 0; }
 .btn-link:hover { text-decoration: underline; background: none; }
 .btn[disabled] { opacity: .6; cursor: default; }
