@@ -35,17 +35,24 @@ ALLOWED_HOSTS = [h for h in os.environ.get("PORTAL_ALLOWED_HOSTS", "*").split(",
 
 # PORTAL_PUBLIC_ORIGIN is the https origin browsers use when the app sits behind a
 # TLS-terminating proxy (e.g. https://8000--<session>.preview.devinapps.com). It is
-# added to the CSRF trusted origins and switches the session/CSRF cookies to
-# Secure + SameSite=None so they survive being served inside another site's frame
-# (the Devin preview pane). CSRF protection itself stays on: the token and the
-# Origin check are still enforced.
+# added to the CSRF trusted origins and switches the session/CSRF cookies to Secure.
+# PORTAL_HTTPS_PROXY=1 does the same for a proxy whose public origin is not known in
+# advance (same-origin posts pass Django's Origin check via X-Forwarded-Proto).
+#
+# The Devin preview proxy rewrites the browser's Origin header to the upstream
+# address ("http://localhost"), which Django would otherwise reject with
+# "Origin checking failed". PORTAL_PROXY_ORIGINS lists the rewritten origins to
+# accept in proxy mode. CSRF protection stays on: the per-session token is still
+# required and any other origin is still refused.
 PUBLIC_ORIGIN = os.environ.get("PORTAL_PUBLIC_ORIGIN", "").rstrip("/")
-CSRF_TRUSTED_ORIGINS = [o for o in os.environ.get("PORTAL_CSRF_TRUSTED_ORIGINS", "").split(",") if o]
-if PUBLIC_ORIGIN and PUBLIC_ORIGIN not in CSRF_TRUSTED_ORIGINS:
-    CSRF_TRUSTED_ORIGINS.append(PUBLIC_ORIGIN)
-# PORTAL_HTTPS_PROXY=1 marks an HTTPS proxy whose public origin is not known in
-# advance (same-origin posts still pass Django's Origin check via X-Forwarded-Proto).
 BEHIND_HTTPS_PROXY = PUBLIC_ORIGIN.startswith("https://") or os.environ.get("PORTAL_HTTPS_PROXY") == "1"
+PROXY_ORIGINS = [
+    o for o in os.environ.get("PORTAL_PROXY_ORIGINS", "http://localhost,http://127.0.0.1").split(",") if o
+]
+CSRF_TRUSTED_ORIGINS = [o for o in os.environ.get("PORTAL_CSRF_TRUSTED_ORIGINS", "").split(",") if o]
+for _origin in ([PUBLIC_ORIGIN] if PUBLIC_ORIGIN else []) + (PROXY_ORIGINS if BEHIND_HTTPS_PROXY else []):
+    if _origin not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(_origin)
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
@@ -141,3 +148,4 @@ CSRF_COOKIE_SECURE = BEHIND_HTTPS_PROXY
 SESSION_COOKIE_SAMESITE = "None" if BEHIND_HTTPS_PROXY else "Lax"
 CSRF_COOKIE_SAMESITE = "None" if BEHIND_HTTPS_PROXY else "Lax"
 X_FRAME_OPTIONS = "DENY"
+CSRF_FAILURE_VIEW = "core.views.csrf_failure"

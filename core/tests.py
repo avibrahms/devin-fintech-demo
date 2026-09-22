@@ -2,6 +2,11 @@
 CSRF and reverse-proxy tests. Django's test client normally skips CSRF checks;
 these tests turn them back on and simulate the headers a TLS-terminating proxy
 (such as the Devin preview) sends, so a login through such a proxy is covered.
+
+Observed on the Devin preview (server log, 2026-09-22): the proxy forwards
+X-Forwarded-Proto: https and the public host, but rewrites the browser's Origin
+header to "http://localhost", which produced
+"Origin checking failed - http://localhost does not match any trusted origins".
 """
 import importlib
 import os
@@ -16,17 +21,20 @@ from core.roles import OPERATOR
 PUBLIC_ORIGIN = "https://8000--session.preview.devinapps.com"
 PUBLIC_HOST = "8000--session.preview.devinapps.com"
 
+# Headers as they arrive at Django through the Devin preview proxy.
 PROXY_HEADERS = {
     "HTTP_HOST": PUBLIC_HOST,
     "HTTP_X_FORWARDED_HOST": PUBLIC_HOST,
     "HTTP_X_FORWARDED_PROTO": "https",
-    "HTTP_ORIGIN": PUBLIC_ORIGIN,
+    "HTTP_ORIGIN": "http://localhost",
     "HTTP_REFERER": PUBLIC_ORIGIN + "/login/",
 }
+# Headers from a proxy that passes the browser's Origin through unchanged.
+PASSTHROUGH_HEADERS = dict(PROXY_HEADERS, HTTP_ORIGIN=PUBLIC_ORIGIN)
 
 proxy_settings = override_settings(
     ALLOWED_HOSTS=["*"],
-    CSRF_TRUSTED_ORIGINS=[PUBLIC_ORIGIN],
+    CSRF_TRUSTED_ORIGINS=[PUBLIC_ORIGIN, "http://localhost", "http://127.0.0.1"],
     SESSION_COOKIE_SECURE=True,
     CSRF_COOKIE_SECURE=True,
     SESSION_COOKIE_SAMESITE="None",
@@ -58,12 +66,25 @@ class CsrfEnforcedTestBase(TestCase):
 
 @proxy_settings
 class ProxiedLoginCsrfTests(CsrfEnforcedTestBase):
-    def test_login_through_https_proxy_succeeds_with_csrf_enforced(self):
+    def test_login_through_devin_preview_proxy_succeeds_with_csrf_enforced(self):
         token = self.fetch_login_token(**PROXY_HEADERS)
         response = self.login_post(token, **PROXY_HEADERS)
         self.assertEqual(response.status_code, 302, response.content[:300])
         self.assertEqual(response.url, reverse("refunds:list"))
         self.assertTrue(self.client.session.get("_auth_user_id"))
+
+    def test_login_through_origin_passthrough_proxy_succeeds(self):
+        token = self.fetch_login_token(**PASSTHROUGH_HEADERS)
+        response = self.login_post(token, **PASSTHROUGH_HEADERS)
+        self.assertEqual(response.status_code, 302, response.content[:300])
+        self.assertTrue(self.client.session.get("_auth_user_id"))
+
+    def test_rewritten_origin_is_rejected_without_proxy_mode(self):
+        with override_settings(CSRF_TRUSTED_ORIGINS=[PUBLIC_ORIGIN]):
+            token = self.fetch_login_token(**PROXY_HEADERS)
+            response = self.login_post(token, **PROXY_HEADERS)
+        self.assertEqual(response.status_code, 403)
+        self.assertContains(response, "Origin checking failed", status_code=403)
 
     def test_cookies_are_secure_and_samesite_none_behind_proxy(self):
         self.client.get(reverse("login"), **PROXY_HEADERS)
@@ -118,6 +139,7 @@ class PublicOriginSettingsTests(TestCase):
         s = self._load_settings({"PORTAL_PUBLIC_ORIGIN": PUBLIC_ORIGIN + "/", "PORTAL_CSRF_TRUSTED_ORIGINS": ""})
         try:
             self.assertIn(PUBLIC_ORIGIN, s.CSRF_TRUSTED_ORIGINS)
+            self.assertIn("http://localhost", s.CSRF_TRUSTED_ORIGINS)
             self.assertTrue(s.SESSION_COOKIE_SECURE and s.CSRF_COOKIE_SECURE)
             self.assertEqual((s.SESSION_COOKIE_SAMESITE, s.CSRF_COOKIE_SAMESITE), ("None", "None"))
         finally:
