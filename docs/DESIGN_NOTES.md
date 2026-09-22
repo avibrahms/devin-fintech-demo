@@ -77,14 +77,40 @@ messages, money formatting and test harness are already there.
   42 tests passing ~15:55; docs and PR ~16:05; browser verification and reset after that.
 - Recorded browser verification ~15:58–16:09 UTC (hover-contrast fix pushed 16:07 and
   re-verified); results recorded, demo reset and app left at login by 16:13 UTC.
-- Total elapsed: about 30 minutes of the 120-minute budget (15:43–16:13 UTC).
+- Total elapsed for the build: about 30 minutes of the 120-minute budget (15:43–16:13 UTC).
   Timestamps are from the session machine's clock; the earlier "16:06, 23 min" progress
   message was a misreading and was corrected in the chat.
+- Follow-up (same budget): a CSRF failure was reported on the HTTPS preview at ~16:19;
+  diagnosed, fixed, regression-tested and re-verified by the reporter through the preview
+  by 16:44 UTC; hosting adapter for a public demo link added in the same window.
+
+### Incident: "CSRF verification failed" on the preview URL
+
+- **Symptom:** login POST through `https://8000--<session>.preview.devinapps.com` returned
+  403; the same POST on localhost worked.
+- **Cause (from the server log):** the preview proxy forwards `X-Forwarded-Proto: https`
+  and the public host, but rewrites the browser's `Origin` header to `http://localhost`.
+  Django's CSRF origin check compares `Origin` with the request host and rejected it:
+  `Origin checking failed - http://localhost does not match any trusted origins`.
+  Adding the public URL to `CSRF_TRUSTED_ORIGINS` (the first attempt) could not help,
+  because the rejected origin was never the public URL.
+- **Fix:** in proxy mode (`PORTAL_PUBLIC_ORIGIN` or `PORTAL_HTTPS_PROXY=1`) the rewritten
+  origins (`PORTAL_PROXY_ORIGINS`, default `http://localhost,http://127.0.0.1`) are added
+  to the trusted list; cookies become `Secure`. CSRF protection stays on: the per-session
+  token is still required and any other origin is still refused. A custom failure page
+  now shows Django's reason so this class of problem is diagnosable without log access.
+- **Tests:** `core/tests.py` runs the login and logout with CSRF enforcement on
+  (`Client(enforce_csrf_checks=True)`) using the proxy's real headers, and checks that a
+  missing token, an untrusted origin, and the rewritten origin *outside* proxy mode are
+  all still rejected. 52 tests pass.
+- **Trade-off:** trusting `http://localhost` as an origin is acceptable for a demo behind
+  an authenticated preview proxy; a production deployment would sit behind a proxy that
+  preserves `Origin` (or sets `X-Forwarded-*` consistently) and would not need it.
 
 ### Results
 
-- **Automated tests:** `make test` — 42 tests, all passing, on Django's isolated
-  in-memory test database.
+- **Automated tests:** `make test` — 52 tests (42 behaviour + 10 CSRF/proxy), all passing,
+  on Django's isolated in-memory test database.
 - **Browser verification (Chrome, maximised 1600×1069, localhost, recorded):** all eight
   scenarios in `docs/ACCEPTANCE.md` → "Browser verification" passed: login banner and
   redirect, wrong-password error, all four amount/reason validation messages, $120
@@ -99,6 +125,12 @@ messages, money formatting and test harness are already there.
   reproduced literally — Chrome reloaded the finalised page instead of restoring the
   stale form. The repeated-decision path was exercised with an authenticated POST from
   the browser instead, and is covered by automated tests.
+- **Preview URL after the CSRF fix:** the reporter's own retry through the HTTPS preview
+  (server log 16:41–16:44 UTC) logged in, searched/filtered refunds, browsed payments and
+  KYC, and created a refund request (302 → detail page). Devin cannot open the preview
+  itself (it requires the account owner's Devin login), so the full three-role
+  walkthrough through that exact URL was not repeated by Devin; it was run instead
+  against the public deployment (see README → "Public demo") in a fresh browser session.
 - **Not done:** no automated browser tests; no load or concurrency test beyond the
   duplicate/stale unit tests; no accessibility audit; no CI workflow in the repo.
 - **Observed usage:** one Devin session (this one). No token or cost figures are
