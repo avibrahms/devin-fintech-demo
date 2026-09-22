@@ -75,8 +75,29 @@ messages, money formatting and test harness are already there.
 - Start: 2026-09-22 15:43 UTC. Budget: 120 minutes (hard stop 17:43 UTC).
 - Milestones: first page served ~15:52; refunds workflow + KYC + seed complete ~15:53;
   42 tests passing ~15:55; docs and PR ~16:05; browser verification and reset after that.
-- End time and final elapsed: see the "Results" section below (filled in at handoff).
+- Browser verification (recorded) 16:06–16:30 UTC; hover-contrast fix 16:07; docs, PR
+  update and reset by ~16:40 UTC.
+- Total elapsed: about 57 minutes of the 120-minute budget.
 
-### Results (filled in at handoff)
+### Results
 
-See the bottom of this file.
+- **Automated tests:** `make test` — 42 tests, all passing, on Django's isolated
+  in-memory test database.
+- **Browser verification (Chrome, maximised 1600×1069, localhost):** all eight
+  scenarios in `docs/ACCEPTANCE.md` → "Browser verification" passed: login banner and
+  redirect, wrong-password error, all four amount/reason validation messages, $120
+  request on PAY-1007, duplicate resubmission redirected with the duplicate message,
+  manager approval with recorded reason, history rows, repeated decision refused with
+  the stale message, manager self-approval blocked (UI and direct POST → 403), auditor
+  has no write controls and direct POST → 403, KYC search/filters, records intact
+  after stopping and restarting the server.
+- **Known failure found and fixed during verification:** Approve/Reject buttons lost
+  their colour on hover (white text on pale grey). Fixed in CSS and re-verified.
+- **Deviation:** the "press Back and click Approve again" scenario could not be
+  reproduced literally — Chrome reloaded the finalised page instead of restoring the
+  stale form. The repeated-decision path was exercised with an authenticated POST from
+  the browser instead, and is covered by automated tests.
+- **Not done:** no automated browser tests; no load or concurrency test beyond the
+  duplicate/stale unit tests; no accessibility audit; no CI workflow in the repo.
+- **Observed usage:** one Devin session (this one). No token or cost figures are
+  available from inside the session, so none are claimed here.
