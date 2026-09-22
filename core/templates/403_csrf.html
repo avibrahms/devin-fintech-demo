@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Form could not be verified{% endblock %}
+{% block content %}
+<div class="card narrow">
+  <h1>Form could not be verified</h1>
+  <p>The request was rejected by the portal's cross-site request protection, so nothing was saved.</p>
+  <p>Reason reported by the server: <code>{{ reason }}</code></p>
+  <p>Usually this means the page was open for a long time, cookies are blocked for this site,
+     or the address you are using is not one the server is configured to trust.
+     Reload the page and try again.</p>
+  <p><a href="{% url 'login' %}">Back to sign in</a></p>
+</div>
+{% endblock %}

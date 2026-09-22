@@ -62,7 +62,8 @@ Restarting: stop the server (Ctrl-C) and run `make run` again. Data lives in
 | `PORTAL_SECRET_KEY` | auto-generated into `data/secret_key.txt` | Django secret key |
 | `PORTAL_DEBUG` | `0` | Set `1` for Django debug pages |
 | `PORTAL_ALLOWED_HOSTS` | `*` | Comma-separated hosts (demo default is permissive) |
-| `PORTAL_CSRF_TRUSTED_ORIGINS` | empty | Needed when served behind a proxy on another origin, e.g. `https://8000--<id>.preview.devinapps.com` |
+| `PORTAL_PUBLIC_ORIGIN` | empty | **Set this when serving behind an HTTPS proxy** (Devin preview, any reverse proxy), e.g. `https://8000--<id>.preview.devinapps.com`. Adds the origin to the CSRF trusted list and marks the session/CSRF cookies `Secure; SameSite=None` so they work when the app is shown inside another site's frame. CSRF checks stay on. |
+| `PORTAL_CSRF_TRUSTED_ORIGINS` | empty | Extra comma-separated trusted origins, if any |
 
 Nothing secret is committed: the database, secret key, `.env*` and `data/` are
 in `.gitignore`. No Microsoft, Dataverse or payment-provider credentials are
@@ -92,6 +93,13 @@ See `docs/DEMO_CHECKLIST.md` for the step-by-step $120 walkthrough.
 
 Devin's browser preview (requires your Devin login):
 `https://8000--f75945dde9794497af71c122dbea3810.preview.devinapps.com/login/`
+
+The server behind it must be started with the public origin, otherwise form posts
+are rejected by CSRF protection (`403 CSRF verification failed`):
+
+```bash
+PORTAL_PUBLIC_ORIGIN=https://8000--f75945dde9794497af71c122dbea3810.preview.devinapps.com make run
+```
 
 This only exists while the Devin session machine is up. The repository contains
 everything needed to recreate the demo locally with the commands above.

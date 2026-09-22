@@ -32,8 +32,18 @@ SECRET_KEY = _secret_key()
 DEBUG = os.environ.get("PORTAL_DEBUG", "0") == "1"
 
 ALLOWED_HOSTS = [h for h in os.environ.get("PORTAL_ALLOWED_HOSTS", "*").split(",") if h]
+
+# PORTAL_PUBLIC_ORIGIN is the https origin browsers use when the app sits behind a
+# TLS-terminating proxy (e.g. https://8000--<session>.preview.devinapps.com). It is
+# added to the CSRF trusted origins and switches the session/CSRF cookies to
+# Secure + SameSite=None so they survive being served inside another site's frame
+# (the Devin preview pane). CSRF protection itself stays on: the token and the
+# Origin check are still enforced.
+PUBLIC_ORIGIN = os.environ.get("PORTAL_PUBLIC_ORIGIN", "").rstrip("/")
 CSRF_TRUSTED_ORIGINS = [o for o in os.environ.get("PORTAL_CSRF_TRUSTED_ORIGINS", "").split(",") if o]
-# The demo is served over a TLS-terminating proxy (Devin preview) or plain http locally.
+if PUBLIC_ORIGIN and PUBLIC_ORIGIN not in CSRF_TRUSTED_ORIGINS:
+    CSRF_TRUSTED_ORIGINS.append(PUBLIC_ORIGIN)
+BEHIND_HTTPS_PROXY = PUBLIC_ORIGIN.startswith("https://")
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
@@ -110,7 +120,18 @@ LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "refunds:list"
 LOGOUT_REDIRECT_URL = "login"
 
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {"console": {"class": "logging.StreamHandler"}},
+    "loggers": {
+        "django.security": {"handlers": ["console"], "level": "WARNING", "propagate": False},
+    },
+}
+
 SESSION_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SAMESITE = "Lax"
-CSRF_COOKIE_SAMESITE = "Lax"
+SESSION_COOKIE_SECURE = BEHIND_HTTPS_PROXY
+CSRF_COOKIE_SECURE = BEHIND_HTTPS_PROXY
+SESSION_COOKIE_SAMESITE = "None" if BEHIND_HTTPS_PROXY else "Lax"
+CSRF_COOKIE_SAMESITE = "None" if BEHIND_HTTPS_PROXY else "Lax"
 X_FRAME_OPTIONS = "DENY"
