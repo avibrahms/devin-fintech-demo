@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Reset demo data{% endblock %}
+{% block content %}
+<div class="card narrow">
+  <h1>Reset demo data</h1>
+  <p><strong>Delete all demo changes and restore the starting data?</strong></p>
+  <p>This removes every refund request, decision and history row created since the last
+     reset and restores the 12 payments, 7 refund requests (RR-1 to RR-7) and 12 KYC cases.
+     Demo accounts (operator, manager, manager2, auditor, presenter) are kept.
+     No payments are affected — this is synthetic data.</p>
+  <form method="post" class="actions">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-reject">Yes, reset demo data</button>
+    <a href="{% url 'refunds:list' %}" class="btn">Cancel</a>
+  </form>
+</div>
+{% endblock %}

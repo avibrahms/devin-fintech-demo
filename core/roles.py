@@ -4,14 +4,16 @@ reads the authenticated user from the session, never from request data.
 """
 from functools import wraps
 
+from django.conf import settings
 from django.core.exceptions import PermissionDenied
 
 OPERATOR = "operator"
 MANAGER = "manager"
 AUDITOR = "auditor"
-ROLES = (OPERATOR, MANAGER, AUDITOR)
+PRESENTER = "presenter"  # demo-only: may reset the synthetic data; no business writes
+ROLES = (OPERATOR, MANAGER, AUDITOR, PRESENTER)
 
-ROLE_LABELS = {OPERATOR: "Operator", MANAGER: "Manager", AUDITOR: "Auditor"}
+ROLE_LABELS = {OPERATOR: "Operator", MANAGER: "Manager", AUDITOR: "Auditor", PRESENTER: "Presenter"}
 
 
 def role_of(user):
@@ -32,6 +34,10 @@ def can_decide_refund(user) -> bool:
     return role_of(user) == MANAGER
 
 
+def can_reset_demo(user) -> bool:
+    return settings.DEMO_MODE and role_of(user) == PRESENTER
+
+
 def role_context(request):
     user = getattr(request, "user", None)
     role = role_of(user) if user is not None else None
@@ -40,6 +46,7 @@ def role_context(request):
         "role_label": ROLE_LABELS.get(role, "No role"),
         "can_request_refund": can_request_refund(user) if user is not None else False,
         "can_decide_refund": can_decide_refund(user) if user is not None else False,
+        "can_reset_demo": can_reset_demo(user) if user is not None else False,
     }
 
 

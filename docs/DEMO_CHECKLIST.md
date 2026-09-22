@@ -1,11 +1,15 @@
 # Demonstration checklist — the $120 example
 
-Before recording: `make reset` (wipes demo records, re-seeds), then `make run`.
-Confirm the login page shows and the yellow "Demo data — no payments executed"
-banner is visible.
+Before recording: sign in as `presenter` / `presenter-demo-2026`, click **Reset demo data**
+(top bar), confirm "Delete all demo changes and restore the starting data?" — the green
+success message confirms RR-1..RR-7 are back — then log out. (Command-line equivalent:
+`make reset`.) Confirm the login page shows the yellow "Demo data — no payments executed"
+banner. Nobody else should reset while you record: a reset removes every request and
+decision made since the last seed.
 
 Accounts: `operator` / `operator-demo-2026`, `manager` / `manager-demo-2026`,
-`auditor` / `auditor-demo-2026`.
+`manager2` / `manager2-demo-2026`, `auditor` / `auditor-demo-2026`,
+`presenter` / `presenter-demo-2026` (reset button only).
 
 ## 1. Operator requests $120 on Mira Chen's payment
 1. Sign in as `operator`. Note the OPERATOR badge and Log out link top right.
@@ -37,16 +41,23 @@ Accounts: `operator` / `operator-demo-2026`, `manager` / `manager-demo-2026`,
 2. Optional: sign in as `auditor`; open RR-8 — same history, no action buttons anywhere,
    no "Request a refund" button.
 
-## 4. Self-approval is blocked
+## 4. Self-approval is blocked — but a second manager can decide
 1. Still as `manager`, open RR-6 (PAY-1008, Tomás Herrera) — a pending request the manager
    submitted. The page says "You submitted this request. Managers cannot approve or reject
    their own requests; another manager must decide it." There are no Approve/Reject buttons.
-2. (For the sceptic) a direct `POST /refunds/6/decide/` as the manager returns HTTP 403 —
-   covered by `test_manager_cannot_approve_own_request`, and the database also has a
-   CHECK constraint `refund_no_self_decision`.
+2. Log out, sign in as `manager2` (Nadia Kowalski, MANAGER badge). Open RR-6: Approve/Reject
+   are available. Approve with a reason — "Decided by manager2" appears with the timestamp
+   and the history gains an `approved` row.
+3. (For the sceptic) a direct `POST /refunds/6/decide/` as `manager`, `operator` or
+   `auditor` returns HTTP 403 — covered by `TwoManagerScenarioTests` and
+   `test_manager_cannot_approve_own_request`; the database also has a CHECK constraint
+   `refund_no_self_decision`.
 
 ## 5. Persistence
-1. Stop the server (Ctrl-C), `make run` again, sign in — RR-8 is still approved.
+1. Reload RR-8, log out and back in as `auditor`: RR-8 is still approved, RR-6 too.
+2. Stop the server (Ctrl-C), `make run` again, sign in — both are still there. Normal
+   startup only seeds an *empty* database (`test_startup_seed_preserves_user_changes`).
 
 ## Reset for the next run
-`make reset` then `make run`.
+As `presenter`: **Reset demo data** → confirm. Or `make reset` on the command line.
+Cancel on the confirmation page leaves everything untouched.

@@ -14,7 +14,7 @@ Chosen: **Django 5.2 + SQLite + server-rendered templates, no JavaScript build.*
   and the standard middleware — nothing custom.
 - Forms and validation use Django forms; database access uses the ORM with
   `transaction.atomic`, `CheckConstraint`s and a `UNIQUE` (OneToOne) constraint.
-- Roles are Django auth Groups (`operator`, `manager`, `auditor`).
+- Roles are Django auth Groups (`operator`, `manager`, `auditor`, plus demo-only `presenter` for the reset button).
 - SQLite keeps setup to one command and persists to `data/portal.sqlite3`.
   Swapping to Postgres is a settings change plus `migrate`.
 

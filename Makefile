@@ -13,11 +13,11 @@ setup:
 	$(PY) manage.py migrate --noinput
 	$(PY) manage.py seed_demo
 
-## run: start the dev server (does NOT erase data)
+## run: start the dev server in demo mode (does NOT erase data; presenter gets the Reset button)
 run:
 	$(PY) manage.py migrate --noinput
 	$(PY) manage.py seed_demo
-	$(PY) manage.py runserver --insecure $(HOST):$(PORT)
+	PORTAL_DEMO_MODE=1 $(PY) manage.py runserver --insecure $(HOST):$(PORT)
 
 ## test: run the server-side test suite against an isolated in-memory database
 test:

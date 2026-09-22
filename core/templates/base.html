@@ -20,6 +20,7 @@
     <div class="userbox">
       <span class="username">{{ user.get_full_name|default:user.username }}</span>
       <span class="role-badge role-{{ role }}">{{ role_label }}</span>
+      {% if can_reset_demo %}<a href="{% url 'demo_reset' %}" class="btn btn-reset">Reset demo data</a>{% endif %}
       <form method="post" action="{% url 'logout' %}" class="inline">{% csrf_token %}<button type="submit" class="btn btn-link">Log out</button></form>
     </div>
     {% endif %}

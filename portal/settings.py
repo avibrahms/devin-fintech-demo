@@ -30,6 +30,8 @@ def _secret_key() -> str:
 SECRET_KEY = _secret_key()
 
 DEBUG = os.environ.get("PORTAL_DEBUG", "0") == "1"
+# Demo mode exposes the presenter-only "Reset demo data" action. Must be off in production.
+DEMO_MODE = os.environ.get("PORTAL_DEMO_MODE", "0") == "1"
 
 ALLOWED_HOSTS = [h for h in os.environ.get("PORTAL_ALLOWED_HOSTS", "*").split(",") if h]
 

@@ -11,7 +11,7 @@ from django.core.management.base import BaseCommand
 from django.core.management.color import no_style
 from django.db import connection, transaction
 
-from core.roles import AUDITOR, MANAGER, OPERATOR, ROLES
+from core.roles import AUDITOR, MANAGER, OPERATOR, PRESENTER, ROLES
 from kyc.models import KycCase
 from refunds.models import Payment, RefundEvent, RefundRequest, RefundStatus
 
@@ -19,7 +19,9 @@ DEMO_ACCOUNTS = [
     # username, password, role, first, last
     ("operator", "operator-demo-2026", OPERATOR, "Olivia", "Park"),
     ("manager", "manager-demo-2026", MANAGER, "Marcus", "Reed"),
+    ("manager2", "manager2-demo-2026", MANAGER, "Nadia", "Kowalski"),
     ("auditor", "auditor-demo-2026", AUDITOR, "Ava", "Lindqvist"),
+    ("presenter", "presenter-demo-2026", PRESENTER, "Demo", "Presenter"),
 ]
 
 
@@ -84,6 +86,13 @@ class Command(BaseCommand):
     def handle(self, *args, reset=False, **options):
         users = self._ensure_accounts()
         if reset:
+            self.stdout.write(
+                self.style.WARNING(
+                    f"RESET: deleting {RefundRequest.objects.count()} refund requests "
+                    f"({RefundEvent.objects.count()} history rows), {Payment.objects.count()} payments, "
+                    f"{KycCase.objects.count()} KYC cases, including any created since the last seed."
+                )
+            )
             RefundEvent.objects.all().delete()
             RefundRequest.objects.all().delete()
             Payment.objects.all().delete()
@@ -154,7 +163,8 @@ class Command(BaseCommand):
         for username, password, role, first, last in DEMO_ACCOUNTS:
             user, _ = User.objects.get_or_create(username=username, defaults={"first_name": first, "last_name": last})
             user.first_name, user.last_name = first, last
-            user.set_password(password)
+            if not user.check_password(password):  # avoid re-hashing, which would invalidate live sessions
+                user.set_password(password)
             user.save()
             user.groups.set([groups[role]])
             users[username] = user

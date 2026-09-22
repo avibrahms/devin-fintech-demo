@@ -83,6 +83,9 @@ messages, money formatting and test harness are already there.
 - Follow-up (same budget): a CSRF failure was reported on the HTTPS preview at ~16:19;
   diagnosed, fixed, regression-tested and re-verified by the reporter through the preview
   by 16:44 UTC; hosting adapter for a public demo link added in the same window.
+- Follow-up 2: "changes disappear" reported ~16:58; traced to Devin's own CLI reset (see
+  below); presenter reset button, second manager account, 14 regression tests, restart
+  verification and docs done by ~17:15 UTC. Cumulative Devin working time ≈ 95 of 120 min.
 
 ### Incident: "CSRF verification failed" on the preview URL
 
@@ -107,9 +110,46 @@ messages, money formatting and test harness are already there.
   an authenticated preview proxy; a production deployment would sit behind a proxy that
   preserves `Origin` (or sets `X-Forwarded-*` consistently) and would not need it.
 
+### Incident: "changes disappear" on the preview (16:52 UTC)
+
+- **Symptom:** an approval and a new request made through the preview reverted to the
+  starting data after switching accounts.
+- **Trace:** server log — `POST /refunds/payments/11/request/ → 302 → GET /refunds/9/ 200`
+  at 16:51:58 and `POST /refunds/8/decide/ → 302 → GET /refunds/8/ 200` (approved page)
+  at 16:52:35: both writes succeeded and were rendered back. The next list load at
+  16:52:47 returned exactly the seeded 7-request page (4808 bytes, same as before any
+  change). No server restart occurred in that window.
+- **Cause:** Devin ran `seed_demo --reset` from the command line at ~16:52:40 (the
+  original brief asked for a reset after testing; the reset was run while the reporter was
+  still testing). It deleted all refund records and re-seeded RR-1..RR-7. The
+  application's writes, transactions and persistence were not at fault; nothing in normal
+  startup resets data (`seed_demo` without `--reset` returns early when payments exist).
+- **Fix / guard rails:** the reset is now an explicit, visible product action: a
+  `presenter` account (separate from operator/manager/auditor) gets a **Reset demo data**
+  button, only when `PORTAL_DEMO_MODE=1`, with a confirmation page ("Delete all demo
+  changes and restore the starting data?"); Cancel is a plain link and changes nothing;
+  the POST is presenter-only server-side (403 for every other role, 404 outside demo
+  mode), CSRF-protected, and restores the original IDs/examples while keeping all demo
+  accounts. The CLI reset prints what it is about to delete. `seed_demo` no longer
+  re-hashes unchanged passwords, so a startup or reset no longer logs users out.
+  **Demo mode must be off in production** — the button deletes every business record.
+- **Regression tests (`core/tests_seed.py`):** startup seed preserves a new request and
+  a decision and is idempotent; only `--reset` deletes; presenter button/confirm/cancel;
+  other roles and anonymous users cannot reset (UI and direct POST); missing CSRF token
+  is rejected; feature is 404 outside demo mode; presenter cannot write refunds; a second
+  manager (`manager2`) can approve `manager`'s own request while manager/operator/auditor
+  cannot.
+- **Verified on the running preview server (HTTP with the proxy's real headers, not
+  through Devin's browser):** operator request on PAY-1012 → RR-8; operator, auditor and
+  presenter POST decide → 403; `manager` on own RR-6 → 403; `manager2` approves RR-8;
+  repeat approve → stale message; logout/login as auditor after a full server stop/start:
+  RR-1..RR-8 present, RR-8 approved by manager2 with 2 history rows. The preview itself
+  can only be opened with the account owner's Devin login.
+
 ### Results
 
-- **Automated tests:** `make test` — 52 tests (42 behaviour + 10 CSRF/proxy), all passing,
+- **Automated tests:** `make test` — 66 tests (42 behaviour + 10 CSRF/proxy + 14 demo
+  data lifecycle / reset / two-manager), all passing,
   on Django's isolated in-memory test database.
 - **Browser verification (Chrome, maximised 1600×1069, localhost, recorded):** all eight
   scenarios in `docs/ACCEPTANCE.md` → "Browser verification" passed: login banner and
@@ -129,8 +169,10 @@ messages, money formatting and test harness are already there.
   (server log 16:41–16:44 UTC) logged in, searched/filtered refunds, browsed payments and
   KYC, and created a refund request (302 → detail page). Devin cannot open the preview
   itself (it requires the account owner's Devin login), so the full three-role
-  walkthrough through that exact URL was not repeated by Devin; it was run instead
-  against the public deployment (see README → "Public demo") in a fresh browser session.
+  walkthrough through that exact URL was not repeated by Devin; the reporter's own
+  session (16:45–16:53 UTC) shows three role logins, two logouts, a request and an
+  approval succeeding before the reset incident above. No public deployment has been made
+  (held for the reporter's approval).
 - **Not done:** no automated browser tests; no load or concurrency test beyond the
   duplicate/stale unit tests; no accessibility audit; no CI workflow in the repo.
 - **Observed usage:** one Devin session (this one). No token or cost figures are

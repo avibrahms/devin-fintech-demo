@@ -61,6 +61,7 @@ Restarting: stop the server (Ctrl-C) and run `make run` again. Data lives in
 | `PORTAL_DATA_DIR` | `./data` | Where the SQLite DB and generated secret key live (git-ignored) |
 | `PORTAL_SECRET_KEY` | auto-generated into `data/secret_key.txt` | Django secret key |
 | `PORTAL_DEBUG` | `0` | Set `1` for Django debug pages |
+| `PORTAL_DEMO_MODE` | `0` (`make run` and the hosted adapter set `1`) | Enables the presenter-only **Reset demo data** button at `/demo/reset/`. **Must stay `0` in production** — it deletes all business records. |
 | `PORTAL_ALLOWED_HOSTS` | `*` | Comma-separated hosts (demo default is permissive) |
 | `PORTAL_PUBLIC_ORIGIN` | empty | **Set this when serving behind an HTTPS proxy** (Devin preview, any reverse proxy), e.g. `https://8000--<id>.preview.devinapps.com`. Adds the origin to the CSRF trusted list and marks the session/CSRF cookies `Secure; SameSite=None` so they work when the app is shown inside another site's frame. CSRF checks stay on. |
 | `PORTAL_CSRF_TRUSTED_ORIGINS` | empty | Extra comma-separated trusted origins, if any |
@@ -74,8 +75,10 @@ needed.
 | Username | Password | Role | Can |
 | --- | --- | --- | --- |
 | `operator` | `operator-demo-2026` | Operator | Read everything, submit refund requests |
-| `manager` | `manager-demo-2026` | Manager | Submit requests, approve/reject **other users'** requests |
+| `manager` | `manager-demo-2026` | Manager (A) | Submit requests, approve/reject **other users'** requests |
+| `manager2` | `manager2-demo-2026` | Manager (B) | Same as `manager`; exists to decide manager A's own requests |
 | `auditor` | `auditor-demo-2026` | Auditor | Read everything including history; no writes |
+| `presenter` | `presenter-demo-2026` | Presenter (demo only) | Read everything; **Reset demo data** button (demo mode only); no refund writes |
 
 Passwords are demo-only and reset by `seed_demo`. Roles are enforced on the
 server from the session user; form fields are never trusted for identity.
@@ -84,8 +87,15 @@ server from the session user; form fields are never trusted for identity.
 
 - 12 payments (USD/EUR), 7 refund requests (2 approved, 2 rejected, 3 pending), 12 KYC cases.
 - **Reserved for the recording:** `PAY-1007`, customer **Mira Chen**, **$200.00**, no refund request.
-- **Self-approval demo:** `RR-6` on `PAY-1008` is a pending request *created by the manager*;
-  the manager sees why they cannot decide it, and a direct POST returns 403.
+- **Self-approval demo:** `RR-6` on `PAY-1008` is a pending request *created by `manager`*;
+  `manager` sees why they cannot decide it (direct POST → 403), `manager2` can approve it,
+  operator/auditor get 403.
+- **`make run` never deletes data.** `seed_demo` only inserts when the database has no
+  payments. Only an explicit reset wipes and re-seeds: `make reset` on the command line, or
+  the presenter's **Reset demo data** button (top bar, demo mode only), which asks
+  "Delete all demo changes and restore the starting data?" — Cancel changes nothing,
+  confirming restores RR-1..RR-7 with their original IDs, keeps all demo accounts and
+  shows a success message. Never run a reset while someone else is mid-demo.
 
 See `docs/DEMO_CHECKLIST.md` for the step-by-step $120 walkthrough.
 
@@ -100,6 +110,8 @@ are rejected by CSRF protection (`403 CSRF verification failed`):
 ```bash
 PORTAL_PUBLIC_ORIGIN=https://8000--f75945dde9794497af71c122dbea3810.preview.devinapps.com make run
 ```
+
+The running preview server is in demo mode, so `presenter` sees the Reset button.
 
 This only exists while the Devin session machine is up. The repository contains
 everything needed to recreate the demo locally with the commands above.

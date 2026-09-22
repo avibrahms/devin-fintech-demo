@@ -23,6 +23,9 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fo
 .role-manager { background: #e3ecf6; border-color: #b9cde6; color: #1f4e79; }
 .role-operator { background: #e6f2ea; border-color: #b7d9c3; color: #1e6b3a; }
 .role-auditor { background: #f1ecf7; border-color: #d3c5e6; color: #4b2d7f; }
+.role-presenter { background: #fff4e0; border-color: #e6c88a; color: #7a4b00; }
+.btn-reset { font-size: 13px; padding: 3px 10px; border-color: #b45309; color: #7a4b00; background: #fff8ec; text-decoration: none; }
+.btn-reset:hover { background: #fde8c8; }
 
 .content { max-width: 1200px; margin: 0 auto; padding: 20px; }
 .footer { max-width: 1200px; margin: 20px auto; padding: 0 20px; color: var(--muted); font-size: 12px; }

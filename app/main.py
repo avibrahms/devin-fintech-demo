@@ -13,6 +13,7 @@ VOLUME = Path("/data")
 if VOLUME.is_dir() and os.access(VOLUME, os.W_OK):
     os.environ.setdefault("PORTAL_DATA_DIR", str(VOLUME))
 os.environ.setdefault("PORTAL_HTTPS_PROXY", "1")
+os.environ.setdefault("PORTAL_DEMO_MODE", "1")  # hosted demo only; never set in production
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "portal.settings")
 
 import django  # noqa: E402
