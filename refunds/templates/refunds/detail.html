@@ -1,0 +1,86 @@
+{% extends "base.html" %}{% load portal_extras %}
+{% block title %}RR-{{ refund.pk }} · Refund request{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Refund request RR-{{ refund.pk }} <span class="badge {{ refund.status|status_class }}">{{ refund.get_status_display }}</span></h1>
+  <a href="{% url 'refunds:list' %}">← All refund requests</a>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <h2>Request</h2>
+    <dl class="facts">
+      <dt>Refund amount</dt><dd class="num"><strong>{{ refund.amount_minor|money:refund.currency }}</strong> {{ refund.currency }}</dd>
+      <dt>Reason</dt><dd>{{ refund.reason }}</dd>
+      <dt>Submitted by</dt><dd>{{ refund.requested_by.username }}</dd>
+      <dt>Submitted at</dt><dd class="mono">{{ refund.requested_at|date:"Y-m-d H:i:s" }} UTC</dd>
+    </dl>
+    <h2>Decision</h2>
+    {% if refund.is_pending %}
+      <p class="notice">Awaiting a manager decision.</p>
+    {% else %}
+      <dl class="facts">
+        <dt>Outcome</dt><dd><span class="badge {{ refund.status|status_class }}">{{ refund.get_status_display }}</span></dd>
+        <dt>Decided by</dt><dd>{{ refund.decided_by.username }}</dd>
+        <dt>Decided at</dt><dd class="mono">{{ refund.decided_at|date:"Y-m-d H:i:s" }} UTC</dd>
+        <dt>Decision reason</dt><dd>{{ refund.decision_reason }}</dd>
+      </dl>
+      <p class="notice">Final. A decided request cannot be changed or decided again. Approval records a decision only; no money is moved.</p>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h2>Original payment</h2>
+    <dl class="facts">
+      <dt>Reference</dt><dd class="mono">{{ refund.payment.reference }}</dd>
+      <dt>Customer</dt><dd>{{ refund.payment.customer_name }}</dd>
+      <dt>Amount</dt><dd class="num">{{ refund.payment.amount_minor|money:refund.payment.currency }} {{ refund.payment.currency }}</dd>
+      <dt>Paid at</dt><dd class="mono">{{ refund.payment.paid_at|date:"Y-m-d H:i" }} UTC</dd>
+      <dt>Description</dt><dd>{{ refund.payment.description|default:"—" }}</dd>
+    </dl>
+
+    {% if refund.is_pending %}
+    <h2>Manager decision</h2>
+    {% if may_decide %}
+      <form method="post" action="{% url 'refunds:decide' refund.pk %}">
+        {% csrf_token %}
+        <div class="field">
+          <label for="id_reason">Decision reason <span class="muted">(required)</span></label>
+          <textarea name="reason" id="id_reason" rows="2" required maxlength="1000"></textarea>
+        </div>
+        <div class="actions">
+          <button type="submit" name="decision" value="approve" class="btn btn-approve">Approve</button>
+          <button type="submit" name="decision" value="reject" class="btn btn-reject">Reject</button>
+        </div>
+      </form>
+    {% elif is_own and can_decide_refund %}
+      <p class="notice">You submitted this request. Managers cannot approve or reject their own requests; another manager must decide it.</p>
+    {% elif can_decide_refund %}
+      <p class="notice">Decision not available.</p>
+    {% else %}
+      <p class="notice">Only a manager can approve or reject this request.</p>
+    {% endif %}
+    {% endif %}
+  </div>
+</div>
+
+<h2>History</h2>
+<table class="data">
+  <thead><tr><th>When (UTC)</th><th>Action</th><th>By</th><th>Status</th><th class="num">Amount</th><th>Reason</th></tr></thead>
+  <tbody>
+  {% for e in events %}
+    <tr>
+      <td class="mono">{{ e.occurred_at|date:"Y-m-d H:i:s" }}</td>
+      <td>{{ e.get_action_display }}</td>
+      <td>{{ e.actor.username }}</td>
+      <td class="mono">{{ e.from_status|default:"—" }} → {{ e.to_status }}</td>
+      <td class="num">{{ e.amount_minor|money:e.currency }}</td>
+      <td>{{ e.reason }}</td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="6" class="empty">No history.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+<p class="notice">History rows are written in the same database transaction as the change they describe. They are application records, not a tamper-proof audit log.</p>
+{% endblock %}

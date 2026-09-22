@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Not permitted{% endblock %}
+{% block content %}
+<div class="card narrow">
+  <h1>Not permitted</h1>
+  <p>Your role ({{ role_label }}) is not allowed to perform this action.{% if exception %} {{ exception }}{% endif %}</p>
+  <p><a href="{% url 'home' %}">Back to the portal</a></p>
+</div>
+{% endblock %}

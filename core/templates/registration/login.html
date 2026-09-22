@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Sign in · Operations Portal{% endblock %}
+{% block content %}
+<div class="card narrow">
+  <h1>Sign in</h1>
+  {% if form.non_field_errors %}<div class="form-error">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+  <form method="post" action="{% url 'login' %}">
+    {% csrf_token %}
+    <div class="field">
+      <label for="id_username">Username</label>
+      <input type="text" name="username" id="id_username" autofocus autocomplete="username" required value="{{ form.username.value|default:'' }}">
+    </div>
+    <div class="field">
+      <label for="id_password">Password</label>
+      <input type="password" name="password" id="id_password" autocomplete="current-password" required>
+    </div>
+    <input type="hidden" name="next" value="{{ next }}">
+    <button type="submit" class="btn btn-primary">Sign in</button>
+  </form>
+  <p class="muted small">Demo accounts: <code>operator</code>, <code>manager</code>, <code>auditor</code> (passwords in README).</p>
+</div>
+{% endblock %}

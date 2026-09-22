@@ -1,0 +1,40 @@
+{% extends "base.html" %}{% load portal_extras %}
+{% block title %}Request refund · {{ payment.reference }}{% endblock %}
+{% block content %}
+<div class="page-head"><h1>Request a refund</h1><a href="{% url 'refunds:payments' %}">← Payments</a></div>
+<div class="grid-2">
+  <div class="card">
+    <h2>Payment</h2>
+    <dl class="facts">
+      <dt>Reference</dt><dd class="mono">{{ payment.reference }}</dd>
+      <dt>Customer</dt><dd>{{ payment.customer_name }}</dd>
+      <dt>Amount</dt><dd class="num"><strong>{{ payment.amount_minor|money:payment.currency }}</strong> {{ payment.currency }}</dd>
+      <dt>Paid at</dt><dd class="mono">{{ payment.paid_at|date:"Y-m-d H:i" }} UTC</dd>
+      <dt>Description</dt><dd>{{ payment.description|default:"—" }}</dd>
+    </dl>
+  </div>
+  <div class="card">
+    <h2>Refund request</h2>
+    {% if form.non_field_errors %}<div class="form-error">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+    <form method="post" novalidate>
+      {% csrf_token %}
+      <div class="field {% if form.amount.errors %}has-error{% endif %}">
+        <label for="id_amount">Refund amount ({{ payment.currency }})</label>
+        <input type="text" inputmode="decimal" name="amount" id="id_amount" value="{{ form.amount.value|default:'' }}" placeholder="0.00" autofocus>
+        <div class="help">Greater than zero, at most two decimal places, no more than {{ payment.amount_minor|money:payment.currency }}.</div>
+        {% for err in form.amount.errors %}<div class="field-error">{{ err }}</div>{% endfor %}
+      </div>
+      <div class="field {% if form.reason.errors %}has-error{% endif %}">
+        <label for="id_reason">Reason <span class="muted">(required)</span></label>
+        <textarea name="reason" id="id_reason" rows="3" maxlength="1000">{{ form.reason.value|default:'' }}</textarea>
+        {% for err in form.reason.errors %}<div class="field-error">{{ err }}</div>{% endfor %}
+      </div>
+      <div class="actions">
+        <button type="submit" class="btn btn-primary">Submit request</button>
+        <a class="btn" href="{% url 'refunds:payments' %}">Cancel</a>
+      </div>
+    </form>
+    <p class="notice">Submitting creates a pending request for a manager to decide. No money is moved.</p>
+  </div>
+</div>
+{% endblock %}
