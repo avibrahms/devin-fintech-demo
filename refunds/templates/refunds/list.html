@@ -1,0 +1,42 @@
+{% extends "base.html" %}{% load portal_extras %}
+{% block title %}Refund requests · Operations Portal{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Refund requests</h1>
+  {% if can_request_refund %}<a class="btn btn-primary" href="{% url 'refunds:payments' %}">Request a refund</a>{% endif %}
+</div>
+<form method="get" class="filters">
+  <div class="field"><label for="q">Search</label><input type="search" id="q" name="q" value="{{ q }}" placeholder="Payment ref, customer, reason, requester"></div>
+  <div class="field"><label for="status">Status</label>
+    <select id="status" name="status">
+      <option value="" {% if not status %}selected{% endif %}>All</option>
+      {% for value, label in statuses %}<option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+  </div>
+  <button type="submit" class="btn">Apply</button>
+  {% if q or status %}<a class="btn" href="{% url 'refunds:list' %}">Clear</a>{% endif %}
+  <span class="count">{{ refunds|length }} request{{ refunds|length|pluralize }}</span>
+</form>
+<table class="data">
+  <thead><tr>
+    <th>Request</th><th>Payment</th><th>Customer</th><th class="num">Payment</th><th class="num">Refund</th><th>Status</th><th>Requested by</th><th>Requested (UTC)</th><th>Decided by</th>
+  </tr></thead>
+  <tbody>
+  {% for r in refunds %}
+    <tr>
+      <td class="mono"><a href="{% url 'refunds:detail' r.pk %}">RR-{{ r.pk }}</a></td>
+      <td class="mono">{{ r.payment.reference }}</td>
+      <td>{{ r.payment.customer_name }}</td>
+      <td class="num">{{ r.payment.amount_minor|money:r.payment.currency }}</td>
+      <td class="num">{{ r.amount_minor|money:r.currency }}</td>
+      <td><span class="badge {{ r.status|status_class }}">{{ r.get_status_display }}</span></td>
+      <td>{{ r.requested_by.username }}</td>
+      <td class="mono">{{ r.requested_at|date:"Y-m-d H:i" }}</td>
+      <td>{{ r.decided_by.username|default:"—" }}</td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="9" class="empty">No refund requests match these filters.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

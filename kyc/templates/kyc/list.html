@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}KYC queue · Operations Portal{% endblock %}
+{% block content %}
+<div class="page-head"><h1>KYC queue</h1><span class="notice">Read-only view. No identity checks or approvals happen here.</span></div>
+<form method="get" class="filters">
+  <div class="field"><label for="q">Search</label><input type="search" id="q" name="q" value="{{ q }}" placeholder="Case ID, customer, reviewer"></div>
+  <div class="field"><label for="risk">Risk</label>
+    <select id="risk" name="risk">
+      <option value="">All</option>
+      {% for value, label in risks %}<option value="{{ value }}" {% if risk == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="field"><label for="status">Status</label>
+    <select id="status" name="status">
+      <option value="">All</option>
+      {% for value, label in statuses %}<option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+  </div>
+  <button type="submit" class="btn">Apply</button>
+  {% if q or risk or status %}<a class="btn" href="{% url 'kyc:list' %}">Clear</a>{% endif %}
+  <span class="count">{{ cases|length }} case{{ cases|length|pluralize }}</span>
+</form>
+<table class="data">
+  <thead><tr><th>Case ID</th><th>Customer</th><th>Risk</th><th>Status</th><th>Assigned reviewer</th><th>Opened (UTC)</th></tr></thead>
+  <tbody>
+  {% for c in cases %}
+    <tr>
+      <td class="mono">{{ c.case_id }}</td>
+      <td>{{ c.customer_name }}</td>
+      <td class="risk-{{ c.risk_level }}">{{ c.get_risk_level_display }}</td>
+      <td>{{ c.get_status_display }}</td>
+      <td>{{ c.assigned_reviewer|default:"Unassigned" }}</td>
+      <td class="mono">{{ c.opened_at|date:"Y-m-d H:i" }}</td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="6" class="empty">No cases match these filters.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
