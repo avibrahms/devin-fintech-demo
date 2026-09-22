@@ -43,7 +43,9 @@ PUBLIC_ORIGIN = os.environ.get("PORTAL_PUBLIC_ORIGIN", "").rstrip("/")
 CSRF_TRUSTED_ORIGINS = [o for o in os.environ.get("PORTAL_CSRF_TRUSTED_ORIGINS", "").split(",") if o]
 if PUBLIC_ORIGIN and PUBLIC_ORIGIN not in CSRF_TRUSTED_ORIGINS:
     CSRF_TRUSTED_ORIGINS.append(PUBLIC_ORIGIN)
-BEHIND_HTTPS_PROXY = PUBLIC_ORIGIN.startswith("https://")
+# PORTAL_HTTPS_PROXY=1 marks an HTTPS proxy whose public origin is not known in
+# advance (same-origin posts still pass Django's Origin check via X-Forwarded-Proto).
+BEHIND_HTTPS_PROXY = PUBLIC_ORIGIN.startswith("https://") or os.environ.get("PORTAL_HTTPS_PROXY") == "1"
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
@@ -61,6 +63,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -113,6 +116,9 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATIC_ROOT = DATA_DIR / "staticfiles"
+# Serve app static files directly from the source tree (no collectstatic step for the demo).
+WHITENOISE_USE_FINDERS = True
+WHITENOISE_AUTOREFRESH = True
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
